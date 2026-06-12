@@ -15,6 +15,9 @@ export class App {
   private cameraManager: CameraManager;
   private gameScene: GameScene;
   private stereoRenderer: StereoRenderer | null = null;
+  private backgroundMusic: HTMLAudioElement | null = null;
+  private musicStarted: boolean = false;
+  private unlockAudioHandler = () => this.startBackgroundMusic();
   private useVR: boolean = false;
 
   constructor() {
@@ -32,6 +35,9 @@ export class App {
 
     // UI Setup
     this.setupUI();
+
+    // Hintergrundmusik vorbereiten
+    this.setupBackgroundMusic();
 
     // Prometheus-Modell laden
     this.loadPrometheusShip();
@@ -129,6 +135,32 @@ export class App {
   /**
    * Schaltet VR Modus um
    */
+  private setupBackgroundMusic(): void {
+    this.backgroundMusic = new Audio('/SpaceFleetInfinity/audio/hazy-eternal-space.mp3');
+    this.backgroundMusic.loop = true;
+    this.backgroundMusic.volume = 0.45;
+    this.backgroundMusic.preload = 'auto';
+
+    this.startBackgroundMusic();
+
+    window.addEventListener('pointerdown', this.unlockAudioHandler);
+    window.addEventListener('keydown', this.unlockAudioHandler);
+    window.addEventListener('touchstart', this.unlockAudioHandler);
+  }
+
+  private startBackgroundMusic(): void {
+    if (!this.backgroundMusic || this.musicStarted) return;
+
+    this.backgroundMusic
+      .play()
+      .then(() => {
+        this.musicStarted = true;
+      })
+      .catch(() => {
+        // Browser starten Audio oft erst nach einer User-Interaktion.
+      });
+  }
+
   private toggleVR(): void {
     if (this.useVR) {
       this.useVR = false;
@@ -192,6 +224,16 @@ export class App {
    * Cleanup
    */
   dispose(): void {
+    window.removeEventListener('pointerdown', this.unlockAudioHandler);
+    window.removeEventListener('keydown', this.unlockAudioHandler);
+    window.removeEventListener('touchstart', this.unlockAudioHandler);
+
+    if (this.backgroundMusic) {
+      this.backgroundMusic.pause();
+      this.backgroundMusic.src = '';
+      this.backgroundMusic = null;
+    }
+
     this.inputManager.dispose();
     this.gameScene.dispose();
     this.engine.dispose();
