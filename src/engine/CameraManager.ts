@@ -11,9 +11,9 @@ export class CameraManager {
   private convergenceDistance: number = 20;
   private followDistance: number = 26;
   private followHeight: number = 7;
-  private positionSmoothing: number = 3.2;
-  private lookSmoothing: number = 5.5;
-  private rollSmoothing: number = 4.2;
+  private positionSmoothing: number = 8.5;
+  private lookSmoothing: number = 10;
+  private rollSmoothing: number = 7.5;
   private followLookTarget: THREE.Vector3 = new THREE.Vector3();
   private followUp: THREE.Vector3 = new THREE.Vector3(0, 1, 0);
 
@@ -114,7 +114,7 @@ export class CameraManager {
     const up = new THREE.Vector3(0, 1, 0)
       .applyQuaternion(target.quaternion)
       .normalize();
-    const speedLookAhead = Math.min(28, velocity.length() * 0.22);
+    const speedLookAhead = Math.min(18, velocity.length() * 0.14);
     const desiredPosition = target.position
       .clone()
       .addScaledVector(forward, -this.followDistance)

@@ -7,34 +7,15 @@ export type FlightInput = { thrust: number; brake: number };
 export class InputManager {
   private pressedKeys: Set<string> = new Set();
   private previousGamepadButtons: Map<number, boolean[]> = new Map();
-  private canvas: HTMLElement;
-  private pointerActive: boolean = false;
-  private pointerId: number | null = null;
-  private pointerX: number = 0;
-  private pointerY: number = 0;
-  private mouseDeltaX: number = 0;
-  private mouseDeltaY: number = 0;
 
   private readonly deadZone = 0.15;
-  private readonly mouseSensitivity = 0.08;
 
   private readonly keyDownHandler = (e: KeyboardEvent) => this.onKeyDown(e);
   private readonly keyUpHandler = (e: KeyboardEvent) => this.onKeyUp(e);
-  private readonly pointerDownHandler = (e: PointerEvent) => this.onPointerDown(e);
-  private readonly pointerMoveHandler = (e: PointerEvent) => this.onPointerMove(e);
-  private readonly pointerUpHandler = (e: PointerEvent) => this.onPointerUp(e);
-  private readonly pointerCancelHandler = (e: PointerEvent) => this.onPointerUp(e);
 
-  constructor(canvas: HTMLElement) {
-    this.canvas = canvas;
-
+  constructor() {
     window.addEventListener('keydown', this.keyDownHandler);
     window.addEventListener('keyup', this.keyUpHandler);
-
-    this.canvas.addEventListener('pointerdown', this.pointerDownHandler);
-    window.addEventListener('pointermove', this.pointerMoveHandler);
-    window.addEventListener('pointerup', this.pointerUpHandler);
-    window.addEventListener('pointercancel', this.pointerCancelHandler);
   }
 
   private onKeyDown(event: KeyboardEvent): void {
@@ -45,35 +26,6 @@ export class InputManager {
 
   private onKeyUp(event: KeyboardEvent): void {
     this.pressedKeys.delete(event.key.toLowerCase());
-  }
-
-  private onPointerDown(event: PointerEvent): void {
-    if (event.button !== 0 && event.pointerType === 'mouse') return;
-
-    this.pointerActive = true;
-    this.pointerId = event.pointerId;
-    this.pointerX = event.clientX;
-    this.pointerY = event.clientY;
-    this.canvas.setPointerCapture?.(event.pointerId);
-    event.preventDefault();
-  }
-
-  private onPointerMove(event: PointerEvent): void {
-    if (!this.pointerActive || event.pointerId !== this.pointerId) return;
-
-    this.mouseDeltaX += event.clientX - this.pointerX;
-    this.mouseDeltaY += event.clientY - this.pointerY;
-    this.pointerX = event.clientX;
-    this.pointerY = event.clientY;
-    event.preventDefault();
-  }
-
-  private onPointerUp(event: PointerEvent): void {
-    if (event.pointerId !== this.pointerId) return;
-
-    this.pointerActive = false;
-    this.pointerId = null;
-    this.canvas.releasePointerCapture?.(event.pointerId);
   }
 
   isKeyPressed(key: string): boolean {
@@ -97,7 +49,6 @@ export class InputManager {
     const rotation: RotationInput = { x: 0, y: 0, z: 0 };
 
     this.addKeyboardInput(rotation);
-    this.addMouseInput(rotation);
     this.addGamepadInput(rotation);
 
     rotation.x = this.clamp(rotation.x, -3, 3);
@@ -110,9 +61,8 @@ export class InputManager {
   getFlightInput(): FlightInput {
     const flight: FlightInput = { thrust: 0, brake: 0 };
 
-    if (this.isKeyPressed('w')) flight.thrust += 1;
-    if (this.isKeyPressed('s')) flight.brake += 1;
-    if (this.isKeyPressed('shift')) flight.thrust += 0.6;
+    if (this.isKeyPressed(' ')) flight.thrust += 1;
+    if (this.isKeyPressed('shift')) flight.brake += 1;
 
     for (const gamepad of this.getGamepads()) {
       flight.thrust += gamepad.buttons[7]?.value ?? 0;
@@ -129,22 +79,14 @@ export class InputManager {
   }
 
   private addKeyboardInput(rotation: RotationInput): void {
-    if (this.isKeyPressed('arrowup')) rotation.x += 1;
-    if (this.isKeyPressed('arrowdown')) rotation.x -= 1;
+    if (this.isKeyPressed('w') || this.isKeyPressed('arrowup')) rotation.x -= 1;
+    if (this.isKeyPressed('s') || this.isKeyPressed('arrowdown')) rotation.x += 1;
 
     if (this.isKeyPressed('a')) rotation.y += 1;
     if (this.isKeyPressed('d')) rotation.y -= 1;
 
     if (this.isKeyPressed('q')) rotation.z += 1;
     if (this.isKeyPressed('e')) rotation.z -= 1;
-  }
-
-  private addMouseInput(rotation: RotationInput): void {
-    rotation.x -= this.mouseDeltaY * this.mouseSensitivity;
-    rotation.y -= this.mouseDeltaX * this.mouseSensitivity;
-
-    this.mouseDeltaX = 0;
-    this.mouseDeltaY = 0;
   }
 
   private addGamepadInput(rotation: RotationInput): void {
@@ -200,11 +142,6 @@ export class InputManager {
   dispose(): void {
     window.removeEventListener('keydown', this.keyDownHandler);
     window.removeEventListener('keyup', this.keyUpHandler);
-
-    this.canvas.removeEventListener('pointerdown', this.pointerDownHandler);
-    window.removeEventListener('pointermove', this.pointerMoveHandler);
-    window.removeEventListener('pointerup', this.pointerUpHandler);
-    window.removeEventListener('pointercancel', this.pointerCancelHandler);
 
     this.pressedKeys.clear();
     this.previousGamepadButtons.clear();

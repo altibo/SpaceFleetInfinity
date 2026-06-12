@@ -25,7 +25,7 @@ export class App {
     this.engine = new Engine();
 
     // Input Manager
-    this.inputManager = new InputManager(this.engine.getRenderer().domElement);
+    this.inputManager = new InputManager();
 
     // Camera Manager für Stereo
     this.cameraManager = new CameraManager(this.engine.getCamera());
@@ -52,28 +52,33 @@ export class App {
   private async loadPrometheusShip(): Promise<void> {
     try {
       const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js');
+      const { MTLLoader } = await import('three/examples/jsm/loaders/MTLLoader.js');
+      const modelPath = '/SpaceFleetInfinity/models/Prometheus%20NX%2059650/';
+      const materialLoader = new MTLLoader();
       const loader = new OBJLoader();
 
+      materialLoader.setPath(modelPath);
+      materialLoader.setResourcePath(modelPath);
+
+      const materials = await materialLoader.loadAsync('prometheus.mtl');
+      materials.preload();
+      loader.setMaterials(materials);
+
       loader.load(
-        '/SpaceFleetInfinity/models/prometheus.obj',
+        `${modelPath}prometheus.obj`,
         (obj: THREE.Group) => {
           // Material anpassen für Wireframe-Look
           obj.traverse((child: THREE.Object3D) => {
             if (child instanceof THREE.Mesh) {
-              // Schwarze Oberflächen
-              const blackMat = new THREE.MeshBasicMaterial({
-                color: 0x000000,
-                side: THREE.FrontSide,
-              });
-              child.material = blackMat;
-
-              // Weiße Kanten hinzufügen
-              const edges = new THREE.EdgesGeometry(child.geometry as THREE.BufferGeometry);
-              const whiteLine = new THREE.LineSegments(
-                edges,
-                new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 })
-              );
-              child.add(whiteLine);
+              if (Array.isArray(child.material)) {
+                child.material.forEach((material) => {
+                  material.side = THREE.DoubleSide;
+                  material.needsUpdate = true;
+                });
+              } else {
+                child.material.side = THREE.DoubleSide;
+                child.material.needsUpdate = true;
+              }
             }
           });
 
@@ -114,7 +119,7 @@ export class App {
     const controls = document.createElement('div');
     controls.id = 'controls';
     controls.textContent =
-      'W/RT: Schub | S/LT: Bremse | Maus/Stick/Pfeile: Steuern | Q/E/LB/RB: Roll | V/Y/Start: 3D';
+      'Space/RT: Schub | Shift/LT: Bremse | W/S/Pfeile/Stick: Pitch | A/D: Yaw | Q/E/LB/RB: Roll | V/Y/Start: 3D';
     ui.appendChild(controls);
 
     // FPS Update Loop

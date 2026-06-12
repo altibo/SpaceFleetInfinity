@@ -38,6 +38,7 @@ export class Engine {
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(0x000000);
     this.scene.fog = new THREE.Fog(0x000000, 100, 1000);
+    this.setupLighting();
 
     // Perspektivische Kamera
     this.camera = new THREE.PerspectiveCamera(
@@ -51,6 +52,19 @@ export class Engine {
 
     // Event Listener
     window.addEventListener('resize', () => this.onWindowResize());
+  }
+
+  private setupLighting(): void {
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.45);
+    const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
+    const fillLight = new THREE.DirectionalLight(0x7fb8ff, 0.9);
+    const rimLight = new THREE.DirectionalLight(0xffffff, 0.7);
+
+    keyLight.position.set(8, 10, 6);
+    fillLight.position.set(-10, 3, -8);
+    rimLight.position.set(0, -6, -10);
+
+    this.scene.add(ambientLight, keyLight, fillLight, rimLight);
   }
 
   /**
