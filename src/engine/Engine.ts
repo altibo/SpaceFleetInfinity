@@ -31,6 +31,7 @@ export class Engine {
     this.renderer.setPixelRatio(devicePixelRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setClearColor(0x000000);
+    this.renderer.scissorTest = true; // Scissor für Split-Screen aktivieren
     container.appendChild(this.renderer.domElement);
 
     // Szene mit schwarzem Hintergrund

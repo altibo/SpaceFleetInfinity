@@ -65,14 +65,12 @@ export class App {
       'W/S: Pitch | A/D: Yaw | Q/E: Roll | V: VR Mode';
     ui.appendChild(controls);
 
-    // VR Button
-    if (this.webXRManager.isXRAvailable()) {
-      const vrButton = document.createElement('button');
-      vrButton.id = 'vrButton';
-      vrButton.textContent = 'Enter VR';
-      vrButton.onclick = () => this.toggleVR(vrButton);
-      ui.appendChild(vrButton);
-    }
+    // VR Button (immer anzeigen - auch für Split-Screen Fallback)
+    const vrButton = document.createElement('button');
+    vrButton.id = 'vrButton';
+    vrButton.textContent = this.webXRManager.isXRAvailable() ? 'Enter VR' : 'Splitscreen VR';
+    vrButton.onclick = () => this.toggleVR(vrButton);
+    ui.appendChild(vrButton);
 
     // FPS Update Loop
     let lastUpdate = 0;
@@ -102,19 +100,26 @@ export class App {
    */
   private async toggleVR(button: HTMLButtonElement): Promise<void> {
     if (this.useVR) {
-      await this.webXRManager.endSession();
+      if (this.webXRManager.isSessionActive()) {
+        await this.webXRManager.endSession();
+      }
       this.useVR = false;
-      button.textContent = 'Enter VR';
+      button.textContent = this.webXRManager.isXRAvailable() ? 'Enter VR' : 'Splitscreen VR';
 
       // Zurück zu normalem Rendering
       this.stereoRenderer = null;
     } else {
-      const session = await this.webXRManager.startSession();
-      if (session) {
+      // Versuche WebXR zu starten
+      let session: XRSession | null = null;
+      if (this.webXRManager.isXRAvailable()) {
+        session = await this.webXRManager.startSession();
+      }
+
+      if (session || !this.webXRManager.isXRAvailable()) {
         this.useVR = true;
         button.textContent = 'Exit VR';
 
-        // Stereo Rendering aktivieren
+        // Stereo Rendering aktivieren (WebXR oder Split-Screen)
         this.stereoRenderer = new StereoRenderer(
           this.engine.getRenderer(),
           this.engine.getScene(),

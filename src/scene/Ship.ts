@@ -1,18 +1,20 @@
 import * as THREE from 'three';
 
 /**
- * Ship erstellt ein futuristisches Raumschiff als Wireframe
+ * Ship erstellt ein futuristisches Raumschiff als Wireframe-Mesh
+ * Mit echten Geometrien und Back-face Culling
  * Bestandteile: Spitze, Rumpf, 2 Flügel, 2 Triebwerke
  */
 export class Ship {
   private group: THREE.Group;
-  private geometries: THREE.BufferGeometry[] = [];
+  private meshes: THREE.Mesh[] = [];
 
   /**
    * Erstellt das Raumschiff
    */
   constructor() {
     this.group = new THREE.Group();
+    this.meshes = [];
     this.createShip();
   }
 
@@ -20,142 +22,58 @@ export class Ship {
    * Erstellt alle Komponenten des Schiffs
    */
   private createShip(): void {
-    // Spitze
-    this.createNose();
-    // Rumpf
-    this.createHull();
-    // Flügel
-    this.createWings();
-    // Triebwerke
-    this.createEngines();
-  }
+    // Material für alle Wireframes
+    const wireMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      wireframe: true,
+      side: THREE.FrontSide, // Nur Außenseiten sichtbar
+    });
 
-  /**
-   * Erstellt die Spitze des Schiffs
-   */
-  private createNose(): void {
-    const noseGeom = new THREE.BufferGeometry();
-    const noseVertices = new Float32Array([
-      0, 0, 0.8, // Spitze
-      0.15, 0, 0.3,
-      -0.15, 0, 0.3,
-      0, 0.15, 0.3,
-      0, -0.15, 0.3,
-    ]);
+    // Spitze (Cone)
+    const noseConeGeom = new THREE.ConeGeometry(0.15, 0.5, 8);
+    const noseMesh = new THREE.Mesh(noseConeGeom, wireMaterial);
+    noseMesh.position.z = 0.55;
+    this.group.add(noseMesh);
+    this.meshes.push(noseMesh);
 
-    noseGeom.setAttribute('position', new THREE.BufferAttribute(noseVertices, 3));
-    const indices = [0, 1, 0, 2, 0, 3, 0, 4, 1, 3, 3, 2, 2, 4, 4, 1];
-    noseGeom.setIndex(indices);
+    // Rumpf (Box)
+    const hullGeom = new THREE.BoxGeometry(0.5, 0.3, 0.6);
+    const hullMesh = new THREE.Mesh(hullGeom, wireMaterial);
+    hullMesh.position.z = 0;
+    this.group.add(hullMesh);
+    this.meshes.push(hullMesh);
 
-    const noseLine = new THREE.LineSegments(
-      noseGeom,
-      new THREE.LineBasicMaterial({ color: 0xffffff })
-    );
-    this.group.add(noseLine);
-    this.geometries.push(noseGeom);
-  }
-
-  /**
-   * Erstellt den Rumpf des Schiffs
-   */
-  private createHull(): void {
-    const hullGeom = new THREE.BufferGeometry();
-    const hullVertices = new Float32Array([
-      0.25, 0.15, 0.3, // oben rechts
-      -0.25, 0.15, 0.3, // oben links
-      0.25, -0.15, 0.3, // unten rechts
-      -0.25, -0.15, 0.3, // unten links
-      0.2, 0.1, -0.3, // hinten oben rechts
-      -0.2, 0.1, -0.3, // hinten oben links
-      0.2, -0.1, -0.3, // hinten unten rechts
-      -0.2, -0.1, -0.3, // hinten unten links
-    ]);
-
-    hullGeom.setAttribute('position', new THREE.BufferAttribute(hullVertices, 3));
-    const indices = [
-      0, 1, 1, 3, 3, 2, 2, 0, // Vorne
-      4, 5, 5, 7, 7, 6, 6, 4, // Hinten
-      0, 4, 1, 5, 2, 6, 3, 7, // Seiten
-    ];
-    hullGeom.setIndex(indices);
-
-    const hullLine = new THREE.LineSegments(
-      hullGeom,
-      new THREE.LineBasicMaterial({ color: 0xffffff })
-    );
-    this.group.add(hullLine);
-    this.geometries.push(hullGeom);
-  }
-
-  /**
-   * Erstellt die Flügel
-   */
-  private createWings(): void {
     // Linker Flügel
-    const leftWingGeom = new THREE.BufferGeometry();
-    const leftWingVertices = new Float32Array([
-      0.25, 0, 0.15, // Basis
-      0.6, 0.15, 0.1, // Außen oben
-      0.6, -0.15, 0.1, // Außen unten
-      0.4, 0, -0.1, // Hinterkante
-    ]);
+    const leftWingGeom = new THREE.BoxGeometry(0.35, 0.05, 0.25);
+    const leftWingMesh = new THREE.Mesh(leftWingGeom, wireMaterial);
+    leftWingMesh.position.set(0.425, 0, 0);
+    leftWingMesh.rotation.z = 0.3;
+    this.group.add(leftWingMesh);
+    this.meshes.push(leftWingMesh);
 
-    leftWingGeom.setAttribute('position', new THREE.BufferAttribute(leftWingVertices, 3));
-    const leftWingIndices = [0, 1, 1, 2, 2, 0, 1, 3, 2, 3, 0, 3];
-    leftWingGeom.setIndex(leftWingIndices);
+    // Rechter Flügel
+    const rightWingGeom = new THREE.BoxGeometry(0.35, 0.05, 0.25);
+    const rightWingMesh = new THREE.Mesh(rightWingGeom, wireMaterial);
+    rightWingMesh.position.set(-0.425, 0, 0);
+    rightWingMesh.rotation.z = -0.3;
+    this.group.add(rightWingMesh);
+    this.meshes.push(rightWingMesh);
 
-    const leftWingLine = new THREE.LineSegments(
-      leftWingGeom,
-      new THREE.LineBasicMaterial({ color: 0xffffff })
-    );
-    this.group.add(leftWingLine);
-    this.geometries.push(leftWingGeom);
+    // Linkes Triebwerk
+    const leftEngineGeom = new THREE.ConeGeometry(0.08, 0.2, 6);
+    const leftEngineMesh = new THREE.Mesh(leftEngineGeom, wireMaterial);
+    leftEngineMesh.position.set(0.1, 0, -0.35);
+    leftEngineMesh.rotation.z = Math.PI;
+    this.group.add(leftEngineMesh);
+    this.meshes.push(leftEngineMesh);
 
-    // Rechter Flügel (gespiegelt)
-    const rightWingGeom = new THREE.BufferGeometry();
-    const rightWingVertices = new Float32Array([
-      -0.25, 0, 0.15, // Basis
-      -0.6, 0.15, 0.1, // Außen oben
-      -0.6, -0.15, 0.1, // Außen unten
-      -0.4, 0, -0.1, // Hinterkante
-    ]);
-
-    rightWingGeom.setAttribute('position', new THREE.BufferAttribute(rightWingVertices, 3));
-    const rightWingIndices = [0, 1, 1, 2, 2, 0, 1, 3, 2, 3, 0, 3];
-    rightWingGeom.setIndex(rightWingIndices);
-
-    const rightWingLine = new THREE.LineSegments(
-      rightWingGeom,
-      new THREE.LineBasicMaterial({ color: 0xffffff })
-    );
-    this.group.add(rightWingLine);
-    this.geometries.push(rightWingGeom);
-  }
-
-  /**
-   * Erstellt die Triebwerke
-   */
-  private createEngines(): void {
-    const engineGeom = new THREE.BufferGeometry();
-    const engineVertices = new Float32Array([
-      0.1, 0, -0.35, // Linkes Triebwerk Spitze
-      0.15, 0.05, -0.2, // Linkes Triebwerk Rückseite
-      0.15, -0.05, -0.2,
-      -0.1, 0, -0.35, // Rechtes Triebwerk Spitze
-      -0.15, 0.05, -0.2, // Rechtes Triebwerk Rückseite
-      -0.15, -0.05, -0.2,
-    ]);
-
-    engineGeom.setAttribute('position', new THREE.BufferAttribute(engineVertices, 3));
-    const engineIndices = [0, 1, 1, 2, 2, 0, 3, 4, 4, 5, 5, 3];
-    engineGeom.setIndex(engineIndices);
-
-    const engineLine = new THREE.LineSegments(
-      engineGeom,
-      new THREE.LineBasicMaterial({ color: 0xffffff })
-    );
-    this.group.add(engineLine);
-    this.geometries.push(engineGeom);
+    // Rechtes Triebwerk
+    const rightEngineGeom = new THREE.ConeGeometry(0.08, 0.2, 6);
+    const rightEngineMesh = new THREE.Mesh(rightEngineGeom, wireMaterial);
+    rightEngineMesh.position.set(-0.1, 0, -0.35);
+    rightEngineMesh.rotation.z = Math.PI;
+    this.group.add(rightEngineMesh);
+    this.meshes.push(rightEngineMesh);
   }
 
   /**
@@ -181,6 +99,9 @@ export class Ship {
    * Cleanup
    */
   dispose(): void {
-    this.geometries.forEach((geom) => geom.dispose());
+    this.meshes.forEach((mesh) => {
+      if (mesh.geometry) mesh.geometry.dispose();
+      if (mesh.material instanceof THREE.Material) mesh.material.dispose();
+    });
   }
 }
