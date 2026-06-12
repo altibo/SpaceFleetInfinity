@@ -31,27 +31,27 @@ export class Ship {
     // Material für weiße Kanten
     const wireMaterial = new THREE.LineBasicMaterial({
       color: 0xffffff,
-      linewidth: 1,
+      linewidth: 1.5,
     });
 
-    // Spitze (Cone)
-    const noseConeGeom = new THREE.ConeGeometry(0.15, 0.5, 8);
+    // Spitze (Cone - verbessert)
+    const noseConeGeom = new THREE.ConeGeometry(0.15, 0.6, 8);
     const noseMesh = new THREE.Mesh(noseConeGeom, blackMaterial);
     noseMesh.position.z = 0.55;
     this.group.add(noseMesh);
     this.meshes.push(noseMesh);
     this.addEdges(noseMesh, noseConeGeom, wireMaterial);
 
-    // Rumpf (Box)
-    const hullGeom = new THREE.BoxGeometry(0.5, 0.3, 0.6);
+    // Rumpf (Box - verbessert)
+    const hullGeom = new THREE.BoxGeometry(0.55, 0.35, 0.65);
     const hullMesh = new THREE.Mesh(hullGeom, blackMaterial);
     hullMesh.position.z = 0;
     this.group.add(hullMesh);
     this.meshes.push(hullMesh);
     this.addEdges(hullMesh, hullGeom, wireMaterial);
 
-    // Linker Flügel
-    const leftWingGeom = new THREE.BoxGeometry(0.35, 0.05, 0.25);
+    // Linker Flügel (vergrößert)
+    const leftWingGeom = new THREE.BoxGeometry(0.4, 0.06, 0.3);
     const leftWingMesh = new THREE.Mesh(leftWingGeom, blackMaterial);
     leftWingMesh.position.set(0.425, 0, 0);
     leftWingMesh.rotation.z = 0.3;
@@ -59,8 +59,8 @@ export class Ship {
     this.meshes.push(leftWingMesh);
     this.addEdges(leftWingMesh, leftWingGeom, wireMaterial);
 
-    // Rechter Flügel
-    const rightWingGeom = new THREE.BoxGeometry(0.35, 0.05, 0.25);
+    // Rechter Flügel (vergrößert)
+    const rightWingGeom = new THREE.BoxGeometry(0.4, 0.06, 0.3);
     const rightWingMesh = new THREE.Mesh(rightWingGeom, blackMaterial);
     rightWingMesh.position.set(-0.425, 0, 0);
     rightWingMesh.rotation.z = -0.3;
@@ -68,8 +68,8 @@ export class Ship {
     this.meshes.push(rightWingMesh);
     this.addEdges(rightWingMesh, rightWingGeom, wireMaterial);
 
-    // Linkes Triebwerk
-    const leftEngineGeom = new THREE.ConeGeometry(0.08, 0.2, 6);
+    // Linkes Triebwerk (verbesserter Look)
+    const leftEngineGeom = new THREE.ConeGeometry(0.1, 0.25, 8);
     const leftEngineMesh = new THREE.Mesh(leftEngineGeom, blackMaterial);
     leftEngineMesh.position.set(0.1, 0, -0.35);
     leftEngineMesh.rotation.z = Math.PI;
@@ -77,8 +77,8 @@ export class Ship {
     this.meshes.push(leftEngineMesh);
     this.addEdges(leftEngineMesh, leftEngineGeom, wireMaterial);
 
-    // Rechtes Triebwerk
-    const rightEngineGeom = new THREE.ConeGeometry(0.08, 0.2, 6);
+    // Rechtes Triebwerk (verbesserter Look)
+    const rightEngineGeom = new THREE.ConeGeometry(0.1, 0.25, 8);
     const rightEngineMesh = new THREE.Mesh(rightEngineGeom, blackMaterial);
     rightEngineMesh.position.set(-0.1, 0, -0.35);
     rightEngineMesh.rotation.z = Math.PI;
@@ -128,5 +128,39 @@ export class Ship {
       if (mesh.geometry) mesh.geometry.dispose();
       if (mesh.material instanceof THREE.Material) mesh.material.dispose();
     });
+  }
+}
+
+/**
+ * Hilfsfunktion zum Laden von GLTF-Modellen von Sketchfab oder anderen Quellen
+ * Beispiel: loadGLTFModel(scene, 'https://example.com/model.glb')
+ */
+export async function loadGLTFModel(
+  scene: THREE.Scene,
+  url: string
+): Promise<THREE.Group | null> {
+  try {
+    const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+    const loader = new GLTFLoader();
+    
+    return new Promise((resolve, reject) => {
+      loader.load(
+        url,
+        (gltf) => {
+          const model = gltf.scene;
+          model.scale.set(1, 1, 1);
+          scene.add(model);
+          resolve(model);
+        },
+        undefined,
+        (error) => {
+          console.error('Fehler beim Laden des Modells:', error);
+          reject(error);
+        }
+      );
+    });
+  } catch (error) {
+    console.error('GLTFLoader konnte nicht geladen werden:', error);
+    return null;
   }
 }
