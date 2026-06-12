@@ -31,7 +31,7 @@ export class Engine {
     this.renderer.setPixelRatio(devicePixelRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.setClearColor(0x000000);
-    this.renderer.scissorTest = true; // Scissor für Split-Screen aktivieren
+    this.renderer.setScissorTest(false);
     container.appendChild(this.renderer.domElement);
 
     // Szene mit schwarzem Hintergrund
@@ -104,9 +104,8 @@ export class Engine {
         this.lastFpsUpdate = currentTime;
       }
 
-      // Update und Render
+      // Update callback owns rendering so callers can switch render modes.
       updateCallback(deltaTime);
-      this.renderer.render(this.scene, this.camera);
 
       requestAnimationFrame(gameLoop);
     };

@@ -1,8 +1,7 @@
 import * as THREE from 'three';
 
 /**
- * Renderer für Split-Screen Stereo Rendering (ohne WebXR)
- * Teilt den Bildschirm horizontal in zwei Viewports
+ * Renderer fuer Split-Screen Stereo Rendering.
  */
 export class StereoRenderer {
   private renderer: THREE.WebGLRenderer;
@@ -22,26 +21,36 @@ export class StereoRenderer {
     this.rightEyeCamera = rightCamera;
   }
 
-  /**
-   * Rendert beide Augen im Split-Screen Modus
-   */
   render(): void {
     const width = this.renderer.domElement.clientWidth;
     const height = this.renderer.domElement.clientHeight;
-    const halfWidth = width / 2;
+    const halfWidth = Math.floor(width / 2);
+    const rightWidth = width - halfWidth;
+    const previousAutoClear = this.renderer.autoClear;
+    const previousScissorTest = this.renderer.getScissorTest();
 
-    // Linkes Auge (mit kleinem Gap in der Mitte für visuellen Separator)
-    this.renderer.setViewport(0, 0, halfWidth - 1, height);
-    this.renderer.setScissor(0, 0, halfWidth - 1, height);
-    this.renderer.render(this.scene, this.leftEyeCamera);
+    this.renderer.autoClear = false;
+    this.renderer.setScissorTest(true);
 
-    // Rechtes Auge
-    this.renderer.setViewport(halfWidth + 1, 0, halfWidth - 1, height);
-    this.renderer.setScissor(halfWidth + 1, 0, halfWidth - 1, height);
-    this.renderer.render(this.scene, this.rightEyeCamera);
+    this.renderEye(this.leftEyeCamera, 0, 0, halfWidth, height);
+    this.renderEye(this.rightEyeCamera, halfWidth, 0, rightWidth, height);
 
-    // Viewport zurücksetzen
     this.renderer.setViewport(0, 0, width, height);
     this.renderer.setScissor(0, 0, width, height);
+    this.renderer.setScissorTest(previousScissorTest);
+    this.renderer.autoClear = previousAutoClear;
+  }
+
+  private renderEye(
+    camera: THREE.PerspectiveCamera,
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ): void {
+    this.renderer.setViewport(x, y, width, height);
+    this.renderer.setScissor(x, y, width, height);
+    this.renderer.clear(true, true, true);
+    this.renderer.render(this.scene, camera);
   }
 }

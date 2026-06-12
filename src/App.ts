@@ -1,8 +1,8 @@
+import * as THREE from 'three';
 import { Engine } from './engine/Engine';
 import { InputManager } from './engine/InputManager';
 import { CameraManager } from './engine/CameraManager';
 import { GameScene } from './scene/GameScene';
-import { WebXRManager } from './vr/WebXRManager';
 import { StereoRenderer } from './vr/StereoRenderer';
 import './styles/style.css';
 
@@ -14,7 +14,6 @@ export class App {
   private inputManager: InputManager;
   private cameraManager: CameraManager;
   private gameScene: GameScene;
-  private webXRManager: WebXRManager;
   private stereoRenderer: StereoRenderer | null = null;
   private useVR: boolean = false;
 
@@ -23,7 +22,7 @@ export class App {
     this.engine = new Engine();
 
     // Input Manager
-    this.inputManager = new InputManager();
+    this.inputManager = new InputManager(this.engine.getRenderer().domElement);
 
     // Camera Manager für Stereo
     this.cameraManager = new CameraManager(this.engine.getCamera());
@@ -31,14 +30,61 @@ export class App {
     // GameScene
     this.gameScene = new GameScene(this.engine.getScene());
 
-    // WebXR Manager
-    this.webXRManager = new WebXRManager();
-
     // UI Setup
     this.setupUI();
 
+    // Prometheus-Modell laden
+    this.loadPrometheusShip();
+
     // Game Loop starten
     this.start();
+  }
+
+  /**
+   * Lädt das Prometheus-Raumschiff-Modell
+   */
+  private async loadPrometheusShip(): Promise<void> {
+    try {
+      const { OBJLoader } = await import('three/examples/jsm/loaders/OBJLoader.js');
+      const loader = new OBJLoader();
+
+      loader.load(
+        '/SpaceFleetInfinity/models/prometheus.obj',
+        (obj: THREE.Group) => {
+          // Material anpassen für Wireframe-Look
+          obj.traverse((child: THREE.Object3D) => {
+            if (child instanceof THREE.Mesh) {
+              // Schwarze Oberflächen
+              const blackMat = new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                side: THREE.FrontSide,
+              });
+              child.material = blackMat;
+
+              // Weiße Kanten hinzufügen
+              const edges = new THREE.EdgesGeometry(child.geometry as THREE.BufferGeometry);
+              const whiteLine = new THREE.LineSegments(
+                edges,
+                new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 1 })
+              );
+              child.add(whiteLine);
+            }
+          });
+
+          // Modell skalieren und in Szene hinzufügen
+          obj.scale.set(1.5, 1.5, 1.5);
+          this.gameScene.setCustomShip(obj);
+          console.log('Prometheus-Modell erfolgreich geladen');
+        },
+        undefined,
+        (error: ErrorEvent) => {
+          console.warn('Prometheus-Modell konnte nicht geladen werden:', error);
+          console.log('Kein Ersatz-Raumschiff geladen');
+        }
+      );
+    } catch (error) {
+      console.warn('OBJLoader Import fehlgeschlagen:', error);
+    }
   }
 
   /**
@@ -62,15 +108,8 @@ export class App {
     const controls = document.createElement('div');
     controls.id = 'controls';
     controls.textContent =
-      'W/S: Pitch | A/D: Yaw | Q/E: Roll | V: VR Mode';
+      'W/RT: Schub | S/LT: Bremse | Maus/Stick/Pfeile: Steuern | Q/E/LB/RB: Roll | V/Y/Start: 3D';
     ui.appendChild(controls);
-
-    // VR Button (immer anzeigen - auch für Split-Screen Fallback)
-    const vrButton = document.createElement('button');
-    vrButton.id = 'vrButton';
-    vrButton.textContent = this.webXRManager.isXRAvailable() ? 'Enter VR' : 'Splitscreen VR';
-    vrButton.onclick = () => this.toggleVR(vrButton);
-    ui.appendChild(vrButton);
 
     // FPS Update Loop
     let lastUpdate = 0;
@@ -85,48 +124,27 @@ export class App {
     updateStats();
 
     // V Taste für VR Toggle
-    document.addEventListener('keydown', (e) => {
-      if (e.key.toLowerCase() === 'v') {
-        const vrBtn = document.getElementById('vrButton') as HTMLButtonElement;
-        if (vrBtn) {
-          this.toggleVR(vrBtn);
-        }
-      }
-    });
   }
 
   /**
    * Schaltet VR Modus um
    */
-  private async toggleVR(button: HTMLButtonElement): Promise<void> {
+  private toggleVR(): void {
     if (this.useVR) {
-      if (this.webXRManager.isSessionActive()) {
-        await this.webXRManager.endSession();
-      }
       this.useVR = false;
-      button.textContent = this.webXRManager.isXRAvailable() ? 'Enter VR' : 'Splitscreen VR';
 
       // Zurück zu normalem Rendering
       this.stereoRenderer = null;
     } else {
-      // Versuche WebXR zu starten
-      let session: XRSession | null = null;
-      if (this.webXRManager.isXRAvailable()) {
-        session = await this.webXRManager.startSession();
-      }
+      this.useVR = true;
 
-      if (session || !this.webXRManager.isXRAvailable()) {
-        this.useVR = true;
-        button.textContent = 'Exit VR';
-
-        // Stereo Rendering aktivieren (WebXR oder Split-Screen)
-        this.stereoRenderer = new StereoRenderer(
-          this.engine.getRenderer(),
-          this.engine.getScene(),
-          this.cameraManager.getLeftEyeCamera(),
-          this.cameraManager.getRightEyeCamera()
-        );
-      }
+      // Stereo Rendering aktivieren
+      this.stereoRenderer = new StereoRenderer(
+        this.engine.getRenderer(),
+        this.engine.getScene(),
+        this.cameraManager.getLeftEyeCamera(),
+        this.cameraManager.getRightEyeCamera()
+      );
     }
   }
 
@@ -141,14 +159,23 @@ export class App {
    * Update Callback für die Game Loop
    */
   private update(deltaTime: number): void {
+    if (this.inputManager.consumeSplitScreenToggle()) {
+      this.toggleVR();
+    }
+
     // Input lesen
     const rotation = this.inputManager.getRotationInput();
+    const flight = this.inputManager.getFlightInput();
 
     // Szene aktualisieren
-    this.gameScene.update(deltaTime, rotation);
+    this.gameScene.update(deltaTime, rotation, flight);
 
     // Kameras aktualisieren
-    this.cameraManager.updateStereo();
+    this.cameraManager.updateFollow(
+      this.gameScene.getShipObject(),
+      this.gameScene.getVelocity(),
+      deltaTime
+    );
 
     // Rendern
     if (this.stereoRenderer) {
