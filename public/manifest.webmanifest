@@ -1,0 +1,27 @@
+{
+  "name": "WireVerse",
+  "short_name": "WireVerse",
+  "description": "A minimalist 3D wireframe space game with 1980s vector graphics style",
+  "start_url": "/SpaceFleetInfinity/",
+  "scope": "/SpaceFleetInfinity/",
+  "display": "fullscreen",
+  "orientation": "portrait-primary",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["games"],
+  "icons": [
+    {
+      "src": "/SpaceFleetInfinity/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/SpaceFleetInfinity/icons/screenshot-1.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ]
+}

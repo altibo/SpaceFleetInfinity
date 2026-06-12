@@ -1,0 +1,5 @@
+service-worker.js
+*.woff
+*.woff2
+*.eot
+*.ttf
